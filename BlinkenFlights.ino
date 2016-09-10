@@ -12,14 +12,15 @@
 
 #include "net.h"
 #include "font.h"
-
+#include "text.h"
+#include "color.h"
 
 Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0();
 Adafruit_TLC59711 tlc = Adafruit_TLC59711(2); // two daisy chained boards
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(22, PB4,  NEO_RGBW);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(18, PB4,  NEO_RGBW);
 
 int32_t gz = 0;
-int gyro_z_offset = 0; //8;
+int gyro_z_offset = 8;
 
 void setup() {
 	pinMode(BOARD_LED_PIN, OUTPUT);
@@ -45,6 +46,18 @@ void setup() {
 	digitalWrite(BOARD_LED_PIN, HIGH);
 }
 
+uint32_t t_end = 0;
+uint32_t t_new_text = 0;
+
+
+uint16_t blue[] = { 0, 0, 0x1000 };
+uint16_t green[] = { 0x1000, 0x1000, 0 };
+uint16_t red[] = { 0x1000, 0, 0 };
+uint16_t cyan[] = { 0, 0x1000, 0x1000 };
+uint16_t magenta[] = { 0x1000, 0, 0x1000 };
+uint16_t yellow[] = { 0x1000, 0x1000, 0 };
+
+
 void setChar(char c, char col, uint16_t *rgb) {
 	for (int row = 0; row < 5; row++) {
 		uint8_t led_nr = 5 - row;
@@ -64,36 +77,9 @@ void clearChar() {
 	tlc.write();
 }
 
-uint16_t blue[] = { 0, 0, 0x1000 };
-uint16_t green[] = { 0x1000, 0x1000, 0 };
-uint16_t red[] = { 0x1000, 0, 0 };
-uint16_t cyan[] = { 0, 0x1000, 0x1000 };
-uint16_t magenta[] = { 0x1000, 0, 0x1000 };
-uint16_t yellow[] = { 0x1000, 0x1000, 0 };
 
-uint32_t t_end = 0;
-
-void loop() {
-
-	// Send heartbeat when no other message was sent
-	heartbeat();
-
-//	int packetSize = udp.parsePacket();
-//
-//	if (packetSize) {
-//		sprintf(msg, "Received UDP: %i Byte", packetSize);
-//		send_msg_via_udp(); //// sends global msg-variable
-//		udp.read(packetBuffer, sizeof(packetBuffer)); // char[]
-//		if (packetBuffer[0] == 'L') {
-//			sprintf(msg, "LAUFLICHT: %i, %s", packetSize, packetBuffer);
-//			send_msg_via_udp(); //// sends global msg-variable
-//		}
-//	}
-
-	lsm.read();
-	gz = (int32_t) lsm.gyroData.z * LSM9DS0_GYRO_DPS_DIGIT_2000DPS + gyro_z_offset; // in deg/s
+uint32_t printText(int32_t gz) {
 	uint32_t gz_abs = fabs(gz);
-
 	char mystring[] = "TECHFEST";
 
 	double rotation_duration_us = 240000;
@@ -117,14 +103,57 @@ void loop() {
 		delayMicroseconds(2 * pixel_duration_us); // inter-char space
 	}
 
-	sprintf(msg, "Gyro: %i deg/s (abs: %i), CalcRotDuration: %i us", (int) gz, (int) gz_abs, (int) rotation_duration_us);
-	send_msg_via_udp();
-
-	// Wait for rotation to finish
+	// "Wait" for rotation to finish
 	// TODO: wait for half/third rotation?
 	uint32_t t_end_last = t_end;
 	t_end = micros();
-	delayMicroseconds(rotation_duration_us - (t_end - t_end_last));
+	uint32_t t_new_text = micros() + (rotation_duration_us - (t_end - t_end_last));
+
+	return t_new_text;
+}
+
+uint32_t t_last_neopixelset = 0;
+float neo_r=0, neo_b=0, neo_g=255, neo_h=0, neo_s=1, neo_v=1;
+
+void loop() {
+
+	// Send heartbeat when no other message was sent
+	heartbeat();
+
+//	int packetSize = udp.parsePacket();
+//
+//	if (packetSize) {
+//		sprintf(msg, "Received UDP: %i Byte", packetSize);
+//		send_msg_via_udp(); //// sends global msg-variable
+//		udp.read(packetBuffer, sizeof(packetBuffer)); // char[]
+//		if (packetBuffer[0] == 'L') {
+//			sprintf(msg, "LAUFLICHT: %i, %s", packetSize, packetBuffer);
+//			send_msg_via_udp(); //// sends global msg-variable
+//		}
+//	}
+
+	lsm.read();
+	gz = (int32_t) lsm.gyroData.z * LSM9DS0_GYRO_DPS_DIGIT_2000DPS + gyro_z_offset; // in deg/s
+
+	if(micros() >= t_new_text)
+	{
+		t_new_text = printText(gz);
+	}
+
+	if(micros() > t_last_neopixelset + 100000)
+	{
+		t_last_neopixelset = micros();
+		for (int i = 0; i < 18; i++)
+		{
+			HSVtoRGB(&neo_r, &neo_g, &neo_b, neo_h++, neo_s, neo_v);
+			strip.setPixelColor(i, int(neo_g * 255), int(neo_r*255), int(neo_b*255), 0);
+		}
+		strip.show();
+	}
+
+	sprintf(msg, "Gyro: %i deg/s", (int) gz);
+	send_msg_via_udp();
+
 
 
 }
