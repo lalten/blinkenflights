@@ -22,9 +22,10 @@ bool with_serial = true;
 char packetBuffer[255];
 
 Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0();
+Adafruit_TLC59711 tlc = Adafruit_TLC59711(2); // two daisy chained boards
 
 int max_gyro = -1;
-int gx, gy, gz;
+int gx = 0, gy = 0, gz = 0;
 char msg[100];
 float dps_per_lsb_gyro = -1;
 float mg_per_lsb_accel = -1;
@@ -100,7 +101,6 @@ char char_to_index(char c) {
 		return 28;
 	return 26;
 }
-Adafruit_TLC59711 tlc = Adafruit_TLC59711(2); // two daisy chained boards
 
 void setup() {
 	pinMode(BOARD_LED_PIN, OUTPUT);
@@ -117,9 +117,9 @@ void setup() {
 	}
 	udp.begin(local_port);
 
-	setupSensor();
 	Wire.begin();
-	// tlc.begin();
+	setupSensor();
+	tlc.begin();
 
 	digitalWrite(BOARD_LED_PIN, HIGH);
 }
@@ -163,7 +163,7 @@ void loop() {
 		digitalWrite(BOARD_LED_PIN, LOW);
 		delay(50);
 	}
-return;
+
 	int packetSize = udp.parsePacket();
 
 	if (packetSize) {
@@ -178,49 +178,41 @@ return;
 	}
 
 	lsm.read();
-	ax = lsm.accelData.x * mg_per_lsb_accel;
-	ay = lsm.accelData.y * mg_per_lsb_accel;
-	az = lsm.accelData.z * mg_per_lsb_accel;
-
-	a_norm = sqrt(ax * ax + ay * ay + az * az);
-
-	gx = (int) lsm.gyroData.x * dps_per_lsb_gyro;
-	gy = (int) lsm.gyroData.y * dps_per_lsb_gyro;
 	gz = (int) lsm.gyroData.z * dps_per_lsb_gyro + gyro_z_offset; // in deg/s
 
 	char mystring[] = "TECHFEST";
 
 	if (true)
 	{
-	sprintf(msg, "Gyro %i %i %i", gx, gy, gz);
+	sprintf(msg, "Gyro: %i", gz);
 	send_msg_via_udp();
 	if (with_serial){ Serial.println(msg); }
 	}
 
+	uint32_t rotation_duration_us =240000;
+	uint32_t pixel_duration_us = 1200;
 	if (gz > 200) {
-		uint32_t rotation_duration_us = 1e6 * 360 / gz;
-		uint32_t pixel_duration_us = 1200; // TODO: from gyro
-
-//	  uint32_t pixel_duration_us = 1200000; // TODO: from gyro
-//    uint32_t rotation_duration_us = 240000000;
-
-		uint32_t t_start = micros();
-
-		for (int i = 0; i < strlen(mystring); i++) {
-
-			int* mycolor = blue;
-
-			for (char col = 0; col < 5; col++) {
-				setChar(mystring[i], col, mycolor);
-				delayMicroseconds(pixel_duration_us);
-			}
-			clearChar();
-			delayMicroseconds(2 * pixel_duration_us); // inter-char space
-			Serial.print(mystring[i]);
-		}
-
-		uint32_t t_end = micros();
-
-		delayMicroseconds(rotation_duration_us - (t_end - t_start));
+		rotation_duration_us = 1e6 * 360 / gz;
+		pixel_duration_us = 1200; // TODO: from gyro
 	}
+
+	uint32_t t_start = micros();
+
+	for (int i = 0; i < strlen(mystring); i++) {
+
+		int* mycolor = blue;
+
+		for (char col = 0; col < 5; col++) {
+			setChar(mystring[i], col, mycolor);
+			delayMicroseconds(pixel_duration_us);
+		}
+		clearChar();
+		delayMicroseconds(2 * pixel_duration_us); // inter-char space
+		Serial.print(mystring[i]);
+	}
+
+	uint32_t t_end = micros();
+
+	delayMicroseconds(rotation_duration_us - (t_end - t_start));
+
 }
