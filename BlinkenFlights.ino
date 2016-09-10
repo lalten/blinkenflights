@@ -2,6 +2,7 @@
 #include <Adafruit_TLC59711.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_LSM9DS0.h>
+#include <Adafruit_NeoPixel.h>
 
 #include <Wire.h>
 #include <SPI.h>
@@ -15,6 +16,7 @@
 
 Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0();
 Adafruit_TLC59711 tlc = Adafruit_TLC59711(2); // two daisy chained boards
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(22, PB4,  NEO_RGBW);
 
 int32_t gz = 0;
 int gyro_z_offset = 0; //8;
@@ -37,6 +39,8 @@ void setup() {
 	Wire.begin();
 	lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_2000DPS);
 	tlc.begin();
+	strip.begin();
+	strip.show(); // Initialize all pixels to 'off'
 
 	digitalWrite(BOARD_LED_PIN, HIGH);
 }
