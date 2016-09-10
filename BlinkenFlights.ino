@@ -16,40 +16,9 @@
 Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0();
 Adafruit_TLC59711 tlc = Adafruit_TLC59711(2); // two daisy chained boards
 
-int max_gyro = -1;
 int32_t gz = 0;
-float dps_per_lsb_gyro = -1;
-float mg_per_lsb_accel = -1;
-float ax, ay, az;
-float a_norm;
-
 int gyro_z_offset = 0; //8;
 
-void setupSensor() {
-	// 1.) Set the accelerometer range
-	lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_2G);
-	mg_per_lsb_accel = LSM9DS0_ACCEL_MG_LSB_2G / 1000.0;
-	//lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_4G);
-	//lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_6G);
-	//lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_8G);
-	//lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_16G);
-
-	// 2.) Set the magnetometer sensitivity
-	lsm.setupMag(lsm.LSM9DS0_MAGGAIN_2GAUSS);
-	//lsm.setupMag(lsm.LSM9DS0_MAGGAIN_4GAUSS);
-	//lsm.setupMag(lsm.LSM9DS0_MAGGAIN_8GAUSS);
-	//lsm.setupMag(lsm.LSM9DS0_MAGGAIN_12GAUSS);
-
-	// 3.) Setup the gyroscope
-	// lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_245DPS);
-	// dps_per_lsb_gyro = LSM9DS0_GYRO_DPS_DIGIT_245DPS;
-
-	//lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_500DPS);
-	// dps_per_lsb_gyro = LSM9DS0_GYRO_DPS_DIGIT_500DPS;
-
-	lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_2000DPS);
-	dps_per_lsb_gyro = LSM9DS0_GYRO_DPS_DIGIT_2000DPS;
-}
 void setup() {
 	pinMode(BOARD_LED_PIN, OUTPUT);
 
@@ -66,7 +35,7 @@ void setup() {
 	udp.begin(local_port);
 
 	Wire.begin();
-	setupSensor();
+	lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_2000DPS);
 	tlc.begin();
 
 	digitalWrite(BOARD_LED_PIN, HIGH);
@@ -118,7 +87,7 @@ void loop() {
 //	}
 
 	lsm.read();
-	gz = (int32_t) lsm.gyroData.z * dps_per_lsb_gyro + gyro_z_offset; // in deg/s
+	gz = (int32_t) lsm.gyroData.z * LSM9DS0_GYRO_DPS_DIGIT_2000DPS + gyro_z_offset; // in deg/s
 	uint32_t gz_abs = fabs(gz);
 
 	char mystring[] = "TECHFEST";
