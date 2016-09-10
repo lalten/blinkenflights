@@ -50,12 +50,19 @@ uint32_t t_end = 0;
 uint32_t t_new_text = 0;
 
 
-uint16_t blue[] = { 0, 0, 0x1000 };
-uint16_t green[] = { 0x1000, 0x1000, 0 };
-uint16_t red[] = { 0x1000, 0, 0 };
-uint16_t cyan[] = { 0, 0x1000, 0x1000 };
-uint16_t magenta[] = { 0x1000, 0, 0x1000 };
-uint16_t yellow[] = { 0x1000, 0x1000, 0 };
+//uint16_t blue[] = { 0, 0, 0x1000 };
+//uint16_t green[] = { 0x1000, 0x1000, 0 };
+//uint16_t red[] = { 0x1000, 0, 0 };
+//uint16_t cyan[] = { 0, 0x1000, 0x1000 };
+//uint16_t magenta[] = { 0x1000, 0, 0x1000 };
+//uint16_t yellow[] = { 0x1000, 0x1000, 0 };
+
+uint16_t blue[] = { 0, 0, 0xFFFF };
+uint16_t green[] = { 0xFFFF, 0xFFFF, 0 };
+uint16_t red[] = { 0xFFFF, 0, 0 };
+uint16_t cyan[] = { 0, 0xFFFF, 0xFFFF };
+uint16_t magenta[] = { 0xFFFF, 0, 0xFFFF };
+uint16_t yellow[] = { 0xFFFF, 0xFFFF, 0 };
 
 
 void setChar(char c, char col, uint16_t *rgb) {
