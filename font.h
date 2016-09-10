@@ -1,6 +1,6 @@
+# pragma once
 
-
-char char_to_index(char c) {
+uint8_t char_to_index(char c) {
 	if (c >= 'A' && c <= 'Z')
 		return c - 'A';
 	if (c == ':')

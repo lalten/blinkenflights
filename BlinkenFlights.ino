@@ -17,13 +17,13 @@ Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0();
 Adafruit_TLC59711 tlc = Adafruit_TLC59711(2); // two daisy chained boards
 
 int max_gyro = -1;
-int gx = 0, gy = 0, gz = 0;
+uint32_t gz = 0;
 float dps_per_lsb_gyro = -1;
 float mg_per_lsb_accel = -1;
 float ax, ay, az;
 float a_norm;
 
-int gyro_z_offset = 8;
+int gyro_z_offset = 0; //8;
 
 void setupSensor() {
 	// 1.) Set the accelerometer range
@@ -72,9 +72,9 @@ void setup() {
 	digitalWrite(BOARD_LED_PIN, HIGH);
 }
 
-void setChar(char c, char col, int *rgb) {
+void setChar(char c, char col, uint16_t *rgb) {
 	for (int row = 0; row < 5; row++) {
-		int led_nr = 5 - row;
+		uint8_t led_nr = 5 - row;
 		if (text[char_to_index(c)][5 * row + col]) {
 			tlc.setLED(led_nr, rgb[0], rgb[1], rgb[2]);
 		} else {
@@ -91,12 +91,12 @@ void clearChar() {
 	tlc.write();
 }
 
-int blue[] = { 0, 0, 0x1000 };
-int green[] = { 0x1000, 0x1000, 0 };
-int red[] = { 0x1000, 0, 0 };
-int cyan[] = { 0, 0x1000, 0x1000 };
-int magenta[] = { 0x1000, 0, 0x1000 };
-int yellow[] = { 0x1000, 0x1000, 0 };
+uint16_t blue[] = { 0, 0, 0x1000 };
+uint16_t green[] = { 0x1000, 0x1000, 0 };
+uint16_t red[] = { 0x1000, 0, 0 };
+uint16_t cyan[] = { 0, 0x1000, 0x1000 };
+uint16_t magenta[] = { 0x1000, 0, 0x1000 };
+uint16_t yellow[] = { 0x1000, 0x1000, 0 };
 
 uint32_t t_end = 0;
 
@@ -118,23 +118,23 @@ void loop() {
 //	}
 
 	lsm.read();
-	gz = (int) lsm.gyroData.z * dps_per_lsb_gyro + gyro_z_offset; // in deg/s
-	uint16_t gz_abs = abs(gz);
+	gz = (uint32_t) lsm.gyroData.z * dps_per_lsb_gyro + gyro_z_offset; // in deg/s
+	uint32_t gz_abs = fabs(gz);
 
 	char mystring[] = "TECHFEST";
 
-	uint32_t rotation_duration_us =240000;
-	uint32_t pixel_duration_us = 1200;
+	double rotation_duration_us = 240000;
+	double pixel_duration_us = 1200;
 	if (gz_abs > 200) {
-		rotation_duration_us = 1e6 * 360 / gz_abs;
+		rotation_duration_us = 1e6 * 360.0 / gz_abs;
 		pixel_duration_us = 1200; // TODO: from gyro
 	}
 
 	// TODO: reverse string and characters on negative gz
 
-	for (int i = 0; i < strlen(mystring); i++) {
+	for (unsigned int i = 0; i < strlen(mystring); i++) {
 
-		int* mycolor = blue;
+		uint16_t* mycolor = blue;
 
 		for (char col = 0; col < 5; col++) {
 			setChar(mystring[i], col, mycolor);
@@ -144,14 +144,14 @@ void loop() {
 		delayMicroseconds(2 * pixel_duration_us); // inter-char space
 	}
 
-	sprintf(msg, "Gyro: %i deg/s, CalcRotDuration: %i us", gz_abs, rotation_duration_us);
+	sprintf(msg, "Gyro: %i deg/s (abs: %i), CalcRotDuration: %i us", (int) gz, (int) gz_abs, (int) rotation_duration_us);
 	send_msg_via_udp();
 
 	// Wait for rotation to finish
 	// TODO: wait for half/third rotation?
 	uint32_t t_end_last = t_end;
 	t_end = micros();
-	delayMicroseconds(rotation_duration_us - (t_end_last - t_end));
+	delayMicroseconds(rotation_duration_us - (t_end - t_end_last));
 
 
 }

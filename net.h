@@ -40,7 +40,7 @@ void heartbeat()
 {
 	long t_now = millis();
 	if (t_now - last_heartbeat > 1000) {
-		sprintf(msg, "Heartbeat: %i", last_heartbeat);
+		sprintf(msg, "Heartbeat: %i", (int) last_heartbeat);
 		send_msg_via_udp(); //// sends global msg-variable
 		last_heartbeat = t_now;
 	}
