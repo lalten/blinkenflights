@@ -65,7 +65,8 @@ uint16_t magenta[] = { 0xFFFF, 0, 0xFFFF };
 uint16_t yellow[] = { 0xFFFF, 0xFFFF, 0 };
 
 
-void setChar(char c, char col, uint16_t *rgb) {
+void setChar(char c, char col, uint16_t *rgb, int8_t dir = 1) {
+	if(dir<0) col = 4-col;
 	for (int row = 0; row < 5; row++) {
 		uint8_t led_nr = 5 - row;
 		if (text[char_to_index(c)][5 * row + col]) {
@@ -103,7 +104,7 @@ uint32_t printText(int32_t gz) {
 		uint16_t* mycolor = blue;
 
 		for (char col = 0; col < 5; col++) {
-			setChar(mystring[i], col, mycolor);
+			setChar(mystring[i], col, mycolor, gz>0?1:-1);
 			delayMicroseconds(pixel_duration_us);
 		}
 		clearChar();
