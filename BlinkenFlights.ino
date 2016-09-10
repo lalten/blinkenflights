@@ -17,7 +17,7 @@ Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0();
 Adafruit_TLC59711 tlc = Adafruit_TLC59711(2); // two daisy chained boards
 
 int max_gyro = -1;
-uint32_t gz = 0;
+int32_t gz = 0;
 float dps_per_lsb_gyro = -1;
 float mg_per_lsb_accel = -1;
 float ax, ay, az;
@@ -118,7 +118,7 @@ void loop() {
 //	}
 
 	lsm.read();
-	gz = (uint32_t) lsm.gyroData.z * dps_per_lsb_gyro + gyro_z_offset; // in deg/s
+	gz = (int32_t) lsm.gyroData.z * dps_per_lsb_gyro + gyro_z_offset; // in deg/s
 	uint32_t gz_abs = fabs(gz);
 
 	char mystring[] = "TECHFEST";
