@@ -74,31 +74,56 @@ void setChar(char c, char col, uint16_t *rgb, int8_t dir = 1) {
 		} else {
 			tlc.setLED(led_nr, 0, 0, 0);
 		}
+		tlc.setLED(0, 0, 0xFFFF, 0); // red underline
 	}
 	tlc.write();
 }
 
 void clearChar() {
-	for (int row = 0; row < 6; row++) {
+	for (int row = 1; row < 6; row++) {
 		tlc.setLED(row, 0, 0, 0);
 	}
 	tlc.write();
 }
 
+uint8_t ledstate = 0;
 
 uint32_t printText(int32_t gz) {
+	const uint8_t NUM_SIDES = 2;
+	const uint16_t ROTATION_THRESH_TEXT = 500;
+
 	uint32_t gz_abs = fabs(gz);
 	char mystring[] = "TECHFEST";
 
-	double rotation_duration_us = 240000;
-	double pixel_duration_us = 1200;
-	if (gz_abs > 200) {
-		rotation_duration_us = 1e6 * 360.0 / gz_abs;
-		pixel_duration_us = 1200; // TODO: from gyro
+	double rotation_duration_us = 240000 / NUM_SIDES;
+	double pixel_duration_us = 800; // TODO: from gyro?
+
+	if(gz_abs <= ROTATION_THRESH_TEXT)
+	{
+//		// clear
+//		for (int row = 0; row < 6; row++) {
+//			tlc.setLED(row, 0, 0, 0);
+//		}
+//		tlc.write();
+//
+//		uint16_t r = 0, g = 0, b = 0;
+//		if(ledstate < 6)
+//		{
+//			r = 0xFFFF;
+//		} else if(ledstate < 12) {
+//			g = 0xFFFF;
+//		} else {
+//			b = 0xFFFF;
+//		}
+//
+//		tlc.setLED(ledstate % 6, r, g, b);
+//		ledstate++;
+//
+//		return micros() + 100*1000;
+	} else {
+		rotation_duration_us = (1e6 * 360.0 / gz_abs) / NUM_SIDES;
+		pixel_duration_us = 800; // TODO: from gyro?
 	}
-
-	// TODO: reverse string and characters on negative gz
-
 	for (unsigned int i = 0; i < strlen(mystring); i++) {
 
 		uint16_t* mycolor = blue;
@@ -112,7 +137,6 @@ uint32_t printText(int32_t gz) {
 	}
 
 	// "Wait" for rotation to finish
-	// TODO: wait for half/third rotation?
 	uint32_t t_end_last = t_end;
 	t_end = micros();
 	uint32_t t_new_text = micros() + (rotation_duration_us - (t_end - t_end_last));
