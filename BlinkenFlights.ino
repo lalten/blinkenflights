@@ -15,11 +15,81 @@
 #include "text.h"
 #include "color.h"
 
+class BumpDetection {
+   int c1_thres, c2_thres, dt1, dt2; 
+   long c1_entry;
+   long c1_exit;
+   bool debug;
+   
+public:
+
+    BumpDetection(int c1_threshold_, int c2_threshold_,int t1_, int t2_):
+      c1_thres(c1_threshold_),
+      c2_thres(c2_threshold_),
+      dt1(t1_),
+      dt2(t2_),
+      c1_entry(0),
+      c1_exit(0), 
+      debug(true)
+      {}
+
+    bool add_value(int v)
+    {
+        int dg = abs(v-1);
+        if (dg < c1_thres)
+        {
+          if (c1_entry == 0)
+          {
+            c1_entry = millis();
+          }
+          if (debug){
+            sprintf(msg,"WITHIN C1: %i %i, dt: %i", dg, c1_thres, (millis()-c1_entry));
+            send_msg_via_udp(); //// sends global msg-variable   
+          }           
+        }
+        else 
+        {
+          if (c1_entry > 0)
+          {
+            long now = millis();
+            if (now-c1_entry>dt1)
+            {
+              if (debug){
+                sprintf(msg,"Exiting C1: %i, c1 entry: %i", dg, c1_entry);
+                send_msg_via_udp(); //// sends global msg-variable
+              }
+              c1_exit = now;
+            }
+          }
+          c1_entry = 0;
+        }
+
+        if (dg > c2_thres){
+          long now = millis();
+          if (c1_exit > 0 && (now-c1_exit) < dt2)
+          {
+            if (debug){
+              sprintf(msg,"XXXXXXXXX Trigger: c1 %i, dt: %i, value: %i", c1_exit, dt2, v);
+              send_msg_via_udp(); //// sends global msg-variable
+            }
+            c1_exit = 0;
+            return true;
+          }
+        }
+        return false;
+    }
+};
+
+
+BumpDetection bd_gyro_xy(30, 600, 400, 200);
 Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0();
 Adafruit_TLC59711 tlc = Adafruit_TLC59711(2); // two daisy chained boards
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(18, PB4,  NEO_RGBW);
 
 double gz = 0;
+int32_t gx = 0;
+int32_t gy = 0;
+
 int gyro_z_offset = 8;
 
 void setup() {
@@ -148,6 +218,7 @@ uint32_t printText(double gz) {
 
 uint32_t t_last_neopixelset = 0;
 float neo_r=0, neo_b=0, neo_g=255, neo_h=0, neo_s=1, neo_v=1;
+bool color_wheel_active = false;
 
 float gz_last = 0;
 
@@ -169,25 +240,69 @@ void loop() {
 //	}
 
 	lsm.readGyro();
+
 	float gz_new = lsm.gyroData.z * LSM9DS0_GYRO_DPS_DIGIT_2000DPS + gyro_z_offset; // in deg/s
 	gz = 0.99 * gz_last + 0.01 * gz_new; // lowpass
 	gz_last = gz_new;
 
-	if(micros() >= t_new_text)
-	{
-		t_new_text = printText(gz);
-	}
+	ax = lsm.accelData.x*mg_per_lsb_accel;
+  ay = lsm.accelData.y*mg_per_lsb_accel;
+	
+	gy = (int32_t) lsm.gyroData.y * LSM9DS0_GYRO_DPS_DIGIT_2000DPS + gyro_z_offset; // in deg/s
+	gz = (int32_t) lsm.gyroData.z * LSM9DS0_GYRO_DPS_DIGIT_2000DPS + gyro_z_offset; // in deg/s
 
-	if(micros() > t_last_neopixelset + 100000)
-	{
-		t_last_neopixelset = micros();
-		for (int i = 0; i < 18; i++)
-		{
-			HSVtoRGB(&neo_r, &neo_g, &neo_b, neo_h++, neo_s, neo_v);
-			strip.setPixelColor(i, int(neo_g * 255), int(neo_r*255), int(neo_b*255), 0);
-		}
-		strip.show();
-	}
+  int gyro_xy = sqrt(gx*gx+gy*gy);
+  bool triggered = bd_gyro_xy.add_value(gyro_xy);
+  if (triggered)
+  {
+      sprintf(msg,"TRIGGERED");
+      send_msg_via_udp(); //// sends global msg-variable
+      color_wheel_active = true;
+      color_wheel_time = 0;
+  }
+
+  if (color_wheel_active)
+  {
+    float angle = atan2(ay, ax);
+    sprintf(msg, "Current angle: %f, speed: %i", angle/M_PI*180, gz);
+    send_msg_via_udp();
+
+    if (abs(gz) < 10)
+    {
+      if (color_wheel_time == 0)
+      {
+        color_wheel_time = now;
+      }
+      if ( (now-color_wheel_time) > 500)
+      {
+        color_wheel_active = false;
+      }
+    }else
+    {
+      color_wheel_time = 0;
+    }
+    
+    // check end of color sequence:
+    /// TODO: use angle as color
+  }
+  else 
+  {
+	  if(micros() >= t_new_text)
+	  {
+		  t_new_text = printText(gz);
+	  }
+
+	  if(micros() > t_last_neopixelset + 100000)
+	  {
+		  t_last_neopixelset = micros();
+		  for (int i = 0; i < 18; i++)
+		  {
+			  HSVtoRGB(&neo_r, &neo_g, &neo_b, neo_h++, neo_s, neo_v);
+			  strip.setPixelColor(i, int(neo_g * 255), int(neo_r*255), int(neo_b*255), 0);
+		  }
+		  strip.show();
+	  }
+  }
 
 	sprintf(msg, "Gyro: %lf deg/s", fabs(gz));
 	send_msg_via_udp();
