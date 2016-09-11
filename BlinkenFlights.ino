@@ -19,7 +19,7 @@ Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0();
 Adafruit_TLC59711 tlc = Adafruit_TLC59711(2); // two daisy chained boards
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(18, PB4,  NEO_RGBW);
 
-int32_t gz = 0;
+double gz = 0;
 int gyro_z_offset = 8;
 
 void setup() {
@@ -88,11 +88,11 @@ void clearChar() {
 
 uint8_t ledstate = 0;
 
-uint32_t printText(int32_t gz) {
+uint32_t printText(double gz) {
 	const uint8_t NUM_SIDES = 2;
 	const uint16_t ROTATION_THRESH_TEXT = 500;
 
-	uint32_t gz_abs = fabs(gz);
+	double gz_abs = fabs(gz);
 	char mystring[] = "TECHFEST";
 
 	double rotation_duration_us = 240000 / NUM_SIDES;
@@ -100,26 +100,28 @@ uint32_t printText(int32_t gz) {
 
 	if(gz_abs <= ROTATION_THRESH_TEXT)
 	{
-//		// clear
-//		for (int row = 0; row < 6; row++) {
-//			tlc.setLED(row, 0, 0, 0);
-//		}
-//		tlc.write();
-//
-//		uint16_t r = 0, g = 0, b = 0;
-//		if(ledstate < 6)
-//		{
-//			r = 0xFFFF;
-//		} else if(ledstate < 12) {
-//			g = 0xFFFF;
-//		} else {
-//			b = 0xFFFF;
-//		}
-//
-//		tlc.setLED(ledstate % 6, r, g, b);
-//		ledstate++;
-//
-//		return micros() + 100*1000;
+		// clear
+		for (int row = 0; row < 6; row++) {
+			tlc.setLED(row, 0, 0, 0);
+		}
+		tlc.write();
+
+		uint16_t r = 0, g = 0, b = 0;
+		if(ledstate < 6)
+		{
+			r = 0xFFFF;
+		} else if(ledstate < 12) {
+			g = 0xFFFF;
+		} else {
+			b = 0xFFFF;
+		}
+
+		tlc.setLED(ledstate % 6, r, g, b);
+		tlc.write();
+
+		ledstate = ++ledstate % 18;
+
+		return micros() + 100*1000;
 	} else {
 		rotation_duration_us = (1e6 * 360.0 / gz_abs) / NUM_SIDES;
 		pixel_duration_us = 800; // TODO: from gyro?
@@ -129,7 +131,7 @@ uint32_t printText(int32_t gz) {
 		uint16_t* mycolor = blue;
 
 		for (char col = 0; col < 5; col++) {
-			setChar(mystring[i], col, mycolor, gz>0?1:-1);
+			setChar(mystring[i], col, mycolor, gz<0?1:-1);
 			delayMicroseconds(pixel_duration_us);
 		}
 		clearChar();
@@ -168,7 +170,7 @@ void loop() {
 
 	lsm.readGyro();
 	float gz_new = lsm.gyroData.z * LSM9DS0_GYRO_DPS_DIGIT_2000DPS + gyro_z_offset; // in deg/s
-	gz = (int32_t) roundf(0.99 * gz_last + 0.01 * gz_new); // lowpass
+	gz = 0.99 * gz_last + 0.01 * gz_new; // lowpass
 	gz_last = gz_new;
 
 	if(micros() >= t_new_text)
@@ -187,7 +189,7 @@ void loop() {
 		strip.show();
 	}
 
-	sprintf(msg, "Gyro: %i deg/s", (int) gz);
+	sprintf(msg, "Gyro: %lf deg/s", fabs(gz));
 	send_msg_via_udp();
 
 
