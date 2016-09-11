@@ -221,8 +221,13 @@ float neo_r=0, neo_b=0, neo_g=255, neo_h=0, neo_s=1, neo_v=1;
 bool color_wheel_active = false;
 
 float gz_last = 0;
+float ax, ay;
+uint32_t color_wheel_time = 0;
+uint32_t now = 0;
 
 void loop() {
+
+	now = millis();
 
 	// Send heartbeat when no other message was sent
 	heartbeat();
@@ -245,8 +250,8 @@ void loop() {
 	gz = 0.99 * gz_last + 0.01 * gz_new; // lowpass
 	gz_last = gz_new;
 
-	ax = lsm.accelData.x*mg_per_lsb_accel;
-  ay = lsm.accelData.y*mg_per_lsb_accel;
+	ax = lsm.accelData.x*LSM9DS0_ACCEL_MG_LSB_2G;
+	ay = lsm.accelData.y*LSM9DS0_ACCEL_MG_LSB_2G;
 	
 	gy = (int32_t) lsm.gyroData.y * LSM9DS0_GYRO_DPS_DIGIT_2000DPS + gyro_z_offset; // in deg/s
 	gz = (int32_t) lsm.gyroData.z * LSM9DS0_GYRO_DPS_DIGIT_2000DPS + gyro_z_offset; // in deg/s
@@ -264,7 +269,7 @@ void loop() {
   if (color_wheel_active)
   {
     float angle = atan2(ay, ax);
-    sprintf(msg, "Current angle: %f, speed: %i", angle/M_PI*180, gz);
+    sprintf(msg, "Current angle: %f, speed: %i", angle/M_PI*180, (int) gz);
     send_msg_via_udp();
 
     if (abs(gz) < 10)
