@@ -147,6 +147,8 @@ uint32_t printText(int32_t gz) {
 uint32_t t_last_neopixelset = 0;
 float neo_r=0, neo_b=0, neo_g=255, neo_h=0, neo_s=1, neo_v=1;
 
+float gz_last = 0;
+
 void loop() {
 
 	// Send heartbeat when no other message was sent
@@ -164,8 +166,10 @@ void loop() {
 //		}
 //	}
 
-	lsm.read();
-	gz = (int32_t) lsm.gyroData.z * LSM9DS0_GYRO_DPS_DIGIT_2000DPS + gyro_z_offset; // in deg/s
+	lsm.readGyro();
+	float gz_new = lsm.gyroData.z * LSM9DS0_GYRO_DPS_DIGIT_2000DPS + gyro_z_offset; // in deg/s
+	gz = (int32_t) roundf(0.99 * gz_last + 0.01 * gz_new); // lowpass
+	gz_last = gz_new;
 
 	if(micros() >= t_new_text)
 	{
