@@ -218,7 +218,7 @@ uint32_t printText(double gz) {
 
 uint32_t t_last_neopixelset = 0;
 float neo_r=0, neo_b=0, neo_g=255, neo_h=0, neo_s=1, neo_v=1;
-bool color_wheel_active = false;
+bool color_wheel_active = true;
 
 float gz_last = 0;
 float ax, ay;
@@ -244,6 +244,7 @@ void loop() {
 //		}
 //	}
 
+	lsm.readAccel();
 	lsm.readGyro();
 
 	float gz_new = lsm.gyroData.z * LSM9DS0_GYRO_DPS_DIGIT_2000DPS + gyro_z_offset; // in deg/s
@@ -253,7 +254,7 @@ void loop() {
 	ax = lsm.accelData.x*LSM9DS0_ACCEL_MG_LSB_2G;
 	ay = lsm.accelData.y*LSM9DS0_ACCEL_MG_LSB_2G;
 	
-	gy = (int32_t) lsm.gyroData.y * LSM9DS0_GYRO_DPS_DIGIT_2000DPS + gyro_z_offset; // in deg/s
+	gy = (int32_t) lsm.gyroData.y * LSM9DS0_GYRO_DPS_DIGIT_2000DPS; // in deg/s
 	gz = (int32_t) lsm.gyroData.z * LSM9DS0_GYRO_DPS_DIGIT_2000DPS + gyro_z_offset; // in deg/s
 
   int gyro_xy = sqrt(gx*gx+gy*gy);
@@ -269,23 +270,23 @@ void loop() {
   if (color_wheel_active)
   {
     float angle = atan2(ay, ax);
-    sprintf(msg, "Current angle: %f, speed: %i", angle/M_PI*180, (int) gz);
+    sprintf(msg, "Current angle: %f, speed: %i", 180.0*angle/M_PI, (int) gz);
     send_msg_via_udp();
-
-    if (abs(gz) < 10)
-    {
-      if (color_wheel_time == 0)
-      {
-        color_wheel_time = now;
-      }
-      if ( (now-color_wheel_time) > 500)
-      {
-        color_wheel_active = false;
-      }
-    }else
-    {
-      color_wheel_time = 0;
-    }
+//
+//    if (abs(gz) < 10)
+//    {
+//      if (color_wheel_time == 0)
+//      {
+//        color_wheel_time = now;
+//      }
+//      if ( (now-color_wheel_time) > 500)
+//      {
+//        color_wheel_active = false;
+//      }
+//    }else
+//    {
+//      color_wheel_time = 0;
+//    }
     
     // check end of color sequence:
     /// TODO: use angle as color
@@ -309,7 +310,7 @@ void loop() {
 	  }
   }
 
-	sprintf(msg, "Gyro: %lf deg/s", fabs(gz));
+	sprintf(msg, "Gyro: %lf deg/s, X/Y: %i", fabs(gz), gyro_xy);
 	send_msg_via_udp();
 
 
