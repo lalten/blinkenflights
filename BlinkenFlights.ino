@@ -28,14 +28,14 @@ void setup() {
 	Serial.begin(9600);
 	Serial.println("BLINKENFLIGHTS!!!11!");
 
-	while ( !connectAP() )
-	{
-		digitalWrite(BOARD_LED_PIN, HIGH);
-		delay(50); // delay between each attempt
-		digitalWrite(BOARD_LED_PIN, LOW);
-		delay(50);
-	}
-	udp.begin(local_port);
+//	while ( !connectAP() )
+//	{
+//		digitalWrite(BOARD_LED_PIN, HIGH);
+//		delay(50); // delay between each attempt
+//		digitalWrite(BOARD_LED_PIN, LOW);
+//		delay(50);
+//	}
+//	udp.begin(local_port);
 
 	Wire.begin();
 	lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_2000DPS);
@@ -154,7 +154,7 @@ float gz_last = 0;
 void loop() {
 
 	// Send heartbeat when no other message was sent
-	heartbeat();
+//	heartbeat();
 
 //	int packetSize = udp.parsePacket();
 //
@@ -170,6 +170,10 @@ void loop() {
 
 	lsm.readGyro();
 	float gz_new = lsm.gyroData.z * LSM9DS0_GYRO_DPS_DIGIT_2000DPS + gyro_z_offset; // in deg/s
+
+	// Workaround: assume constant 1500deg/s
+	gz_new = 1500;
+
 	gz = 0.99 * gz_last + 0.01 * gz_new; // lowpass
 	gz_last = gz_new;
 
@@ -189,8 +193,8 @@ void loop() {
 		strip.show();
 	}
 
-	sprintf(msg, "Gyro: %lf deg/s", fabs(gz));
-	send_msg_via_udp();
+//	sprintf(msg, "Gyro: %lf deg/s", fabs(gz));
+//	send_msg_via_udp();
 
 
 
