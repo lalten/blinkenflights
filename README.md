@@ -22,7 +22,7 @@ https://www.facebook.com/techTALENTSbyUTUM/?fref=ts @27:50
 Slides  
 https://docs.google.com/presentation/d/1p5fFGlhqCqpQb2jrI9guMS4ZMqnlybTPfgCoA1PGK4k/edit?usp=sharing
 
-Video (same as gif)
+Video (same as gif)  
 https://youtu.be/yphzZ9te4NI
 
 Code  
